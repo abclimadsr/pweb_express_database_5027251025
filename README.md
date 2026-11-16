@@ -1,20 +1,41 @@
-# API Produk: Express + Prisma + PostgreSQL (Neon)
+# Manajemen Produk: React + Express + Prisma + PostgreSQL (Neon)
 
-Tugas Pemrograman Web Week 10 (PostgreSQL & Prisma).
-Melanjutkan API produk Week 9 (Express), dengan data yang kini disimpan di PostgreSQL lewat Prisma ORM.
+Tugas Pemrograman Web Week 12 (Fundamental React).
+Melanjutkan API produk Week 10 (Express + Prisma), dengan tambahan antarmuka web berbasis React untuk mengelola produk.
 
 - Nama: Tafidah Hasna Mumtazah
 - NRP: 5027251025
+
+## Deskripsi Tugas
+
+Membuat halaman **Manajemen Produk** dengan React yang terhubung ke API Express dari Week 10. Konsep React yang dipakai: komponen, JSX, props, state (`useState`), event handling, conditional rendering, serta list dengan `map()` dan `key`.
+
+### Halaman Utama
+
+- Judul, deskripsi singkat, dan tombol **+ Tambah Produk**.
+- Kolom pencarian berdasarkan nama produk.
+- Jumlah produk (contoh: `3 produk`).
+- Daftar produk dalam bentuk kartu: ID, nama, harga berformat Rupiah, serta tombol **Edit** dan **Hapus**.
+- Keterangan jumlah, contoh: `Menampilkan 3 dari 3 produk`.
+- Pesan galat jika data gagal dimuat dari server.
+
+### Pop-up (Modal)
+
+| Pop-up | Fungsi |
+|---|---|
+| Tambah Produk | Form nama dan harga produk baru, dengan validasi harga harus lebih dari 0 |
+| Edit Produk | Mengubah nama dan harga produk yang dipilih |
+| Hapus Produk? | Konfirmasi sebelum produk dihapus permanen |
 
 ## Teknologi
 
 | Komponen | Keterangan |
 |---|---|
-| Runtime | Node.js (LTS) |
-| Framework | Express |
-| Bahasa | TypeScript (dijalankan dengan `tsx`) |
+| Frontend | React + Vite (port 5173) |
+| Backend | Node.js + Express + TypeScript (port 3000) |
 | ORM | Prisma 7.10.0 + driver adapter `@prisma/adapter-pg` |
 | Database | PostgreSQL di Neon (cloud) |
+| Database viewer | Prisma Studio (port 51212) |
 
 ## Struktur Proyek
 
@@ -23,24 +44,25 @@ prisma/
   schema.prisma          # model Product
   migrations/            # riwayat migration
 prisma.config.ts         # konfigurasi CLI Prisma (memakai DIRECT_URL)
-src/
-  index.ts               # menyalakan server (app.listen)
-  app.ts                 # merangkai middleware dan router
-  lib/prisma.ts          # PrismaClient (memakai DATABASE_URL)
-  middleware/
-    request-logger.ts    # mencatat setiap request
-  routes/
-    product.routes.ts    # method + path -> controller
-  controllers/
-    product.controller.ts # validasi, akses database, response
+src/                     # backend Express (dari Week 10)
+  index.ts
+  app.ts
+  lib/prisma.ts
+  middleware/request-logger.ts
+  routes/product.routes.ts
+  controllers/product.controller.ts
+frontend/                # aplikasi React + Vite (baru di Week 12)
 ```
 
 ## Instalasi dan Menjalankan
 
 1. Clone repository, lalu masuk ke foldernya.
-2. Install dependensi:
+2. Install dependensi backend dan frontend:
    ```bash
    npm install
+   cd frontend
+   npm install
+   cd ..
    ```
 3. Salin `.env.example` menjadi `.env`, lalu isi dengan connection string dari Neon:
    ```
@@ -58,20 +80,24 @@ src/
    ```bash
    npx prisma generate
    ```
-6. Jalankan server:
+6. Jalankan backend (terminal 1, di root proyek):
    ```bash
    npm run dev
    ```
-   Server berjalan di http://localhost:3000
+   Backend berjalan di http://localhost:3000
+7. Jalankan frontend (terminal 2):
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   Frontend berjalan di http://localhost:5173
+8. (Opsional) Lihat isi database (terminal 3, di root proyek):
+   ```bash
+   npx prisma studio
+   ```
+   Prisma Studio berjalan di http://localhost:51212
 
-Melihat isi database:
-
-```bash
-npx prisma studio
-```
-
-Catatan: pada pengembangan awal (membuat migration baru) dipakai `npx prisma migrate dev --name <nama>`.
-Pastikan versi `prisma` dan `@prisma/client` sama-sama 7.10.0.
+Catatan: backend harus berjalan lebih dulu. Jika tidak, frontend menampilkan pesan "Gagal memuat produk. Pastikan server Express menyala."
 
 ## Model Data
 
@@ -85,67 +111,49 @@ model Product {
 
 `id` dibuat otomatis oleh database. `price` adalah rupiah bulat.
 
-## Daftar Endpoint
+## Endpoint yang Dipakai Frontend
 
-| Method | URL | Body | Keterangan |
+| Aksi di UI | Method | URL | Body |
 |---|---|---|---|
-| GET | `/products` | - | Menampilkan seluruh produk |
-| GET | `/products/:id` | - | Menampilkan satu produk |
-| POST | `/products` | `{ "name": "Spidol", "price": 8000 }` | Membuat produk baru |
-| PUT | `/products` | `{ "id": 1, "name": "Spidol Biru", "price": 9000 }` | Mengubah produk yang sudah ada |
-| DELETE | `/products/:id` | - | Menghapus produk berdasarkan id |
+| Memuat daftar produk | GET | `/products` | - |
+| Simpan Produk (tambah) | POST | `/products` | `{ "name": "Pulpen", "price": 5000 }` |
+| Simpan Perubahan (edit) | PUT | `/products` | `{ "id": 1, "name": "Pensil", "price": 3000 }` |
+| Hapus Produk | DELETE | `/products/:id` | - |
 
-### Aturan validasi
-
-- `name`: string, tidak boleh kosong.
-- `price`: bilangan bulat, minimal 0.
-- `id` (pada path atau body PUT): bilangan bulat positif.
-
-### Status response
-
-| Status | Kondisi |
-|---|---|
-| 200 | GET, PUT, dan DELETE berhasil |
-| 201 | POST berhasil (mengembalikan produk beserta id dari database) |
-| 400 | Input tidak valid (name kosong, price bukan integer, id bukan angka, body JSON rusak) |
-| 404 | Produk atau route tidak ditemukan |
-| 500 | Kesalahan pada server |
-
-Contoh response POST berhasil (201):
-
-```json
-{ "id": 1, "name": "Spidol", "price": 8000 }
-```
-
-Contoh response error (404):
-
-```json
-{ "message": "Produk tidak ditemukan" }
-```
+Endpoint `GET /products/:id` tersedia di backend, tetapi tidak dipakai oleh halaman ini.
 
 ## Skenario Pengujian
 
-Diuji dengan Postman (GANTI jika memakai Bruno atau Hoppscotch). Bukti ada di folder `Dokumentasi Bukti`.
+Diuji manual di browser, dengan verifikasi ke endpoint API, Prisma Studio, dan log terminal backend. Bukti berupa screenshot ada di folder `Dokumentasi Bukti`.
 
-| No | Request | Hasil yang diharapkan |
-|---|---|---|
-| 1 | `POST /products` `{"name":"Spidol","price":8000}` | 201, id dari database |
-| 2 | `POST /products` `{"name":"Penghapus","price":3000}` | 201, id berbeda dari no 1 |
-| 3 | `POST /products` `{"name":"","price":-5}` | 400 |
-| 4 | `GET /products` | 200, array berisi 2 produk |
-| 5 | `GET /products/{id no 1}` | 200, satu objek |
-| 6 | `GET /products/999` | 404 |
-| 7 | `GET /products/abc` | 400 |
-| 8 | `PUT /products` `{"id":<id no 1>,"name":"Spidol Biru","price":9000}` | 200, data berubah |
-| 9 | `PUT /products` `{"id":999,"name":"X","price":1}` | 404 |
-| 10 | `DELETE /products/{id no 2}` | 200, produk hilang dari `GET /products` |
-| 11 | Restart Express, lalu `GET /products` | Data masih ada (tersimpan di PostgreSQL) |
+| No | Skenario | Langkah | Hasil yang diharapkan | Hasil aktual | Status |
+|---|---|---|---|---|---|
+| 1 | Menampilkan daftar produk awal | Buka `localhost:5173` | Produk dari database tampil sebagai kartu | Muncul 2 kartu (ID 1 dan 2: Spidol, Rp8.000), tertulis `2 produk` dan `Menampilkan 2 dari 2 produk` | Berhasil |
+| 2 | Endpoint GET API | Buka `localhost:3000/products` | Mengembalikan data produk dalam JSON | `[{"id":1,"name":"Spidol","price":8000},{"id":2,"name":"Spidol","price":8000}]` | Berhasil |
+| 3 | Data awal di database | Buka tabel `Product` di Prisma Studio | Sesuai dengan data di aplikasi | 2 baris: id 1 dan 2, Spidol, 8000 | Berhasil |
+| 4 | Pencarian produk | Ketik `spidol` di kolom pencarian | Produk yang namanya cocok tampil | Kedua produk Spidol tampil (`Menampilkan 2 dari 2 produk`), huruf kecil tetap terdeteksi | Berhasil |
+| 5 | Membuka pop-up Tambah Produk | Klik **+ Tambah Produk** | Modal berisi form kosong dengan placeholder dan latar redup | Modal "Tambah Produk" muncul dengan placeholder `Contoh: Pulpen` dan `Contoh: 5000`, serta tombol Batal dan Simpan Produk | Berhasil |
+| 6 | Tambah produk (data valid) | Isi nama `Pulpen`, harga `5000`, klik **Simpan Produk** | Produk baru masuk ke daftar dan database | Kartu baru ID 3 Pulpen Rp5.000 muncul, jumlah menjadi `3 produk`; log backend mencatat `POST /products` | Berhasil |
+| 7 | Verifikasi data tambah di database | Refresh Prisma Studio | Baris baru tersimpan | Baris id 3, Pulpen, 5000 ada di tabel | Berhasil |
+| 8 | Validasi harga kosong | Isi nama `Penggatis`, kosongkan harga, klik **Simpan Produk** | Muncul pesan error dan data tidak disimpan | Muncul pesan merah "Harga harus lebih dari 0." dan modal tetap terbuka | Berhasil |
+| 9 | Edit produk | Klik **Edit** pada ID 1, ubah menjadi `Pensil` dengan harga `3000`, klik **Simpan Perubahan** | Data produk ID 1 berubah | Form terisi data lama dan menampilkan `ID: 1`. Setelah disimpan, kartu menjadi Pensil Rp3.000; log mencatat `PUT /products` | Berhasil |
+| 10 | Verifikasi data edit di database | Refresh Prisma Studio | Baris id 1 terupdate | Baris id 1 berubah menjadi Pensil, 3000 | Berhasil |
+| 11 | Pop-up konfirmasi hapus | Klik **Hapus** pada ID 3 (Pulpen) | Modal konfirmasi berisi detail produk | Modal "Hapus Produk?" menampilkan peringatan "tidak dapat dikembalikan" dan detail ID 3 Pulpen Rp5.000 | Berhasil |
+| 12 | Hapus produk | Klik **Hapus Produk** pada modal | Produk hilang dari daftar dan database | Kartu Pulpen hilang, jumlah menjadi `2 produk`; log mencatat `DELETE /products/3` | Berhasil |
+| 13 | Verifikasi data hapus di database | Refresh Prisma Studio | Baris id 3 terhapus | Tersisa 2 baris: Pensil (3000) dan Spidol (8000) | Berhasil |
+| 14 | Penanganan error saat backend mati | Matikan server Express, lalu muat ulang frontend | Frontend menampilkan pesan galat | Muncul "Gagal memuat produk. Pastikan server Express menyala.", `0 produk`, `Menampilkan 0 dari 0 produk` | Berhasil |
+| 15 | Sinkronisasi frontend dan backend | Periksa log terminal backend setelah semua aksi | Setiap aksi tercatat sebagai request | Log: `GET`, `GET`, `POST`, `GET`, `PUT`, `GET`, `DELETE /products/3`, `GET` | Berhasil |
 
-Pada skenario 11, yang di-restart hanya aplikasi Express. Database Neon tetap berjalan.
+Kesimpulan: semua fitur utama (tampil, cari, tambah, edit, hapus, validasi input, dan penanganan error) berjalan sesuai harapan. Perubahan dari UI konsisten dengan data di API dan Prisma Studio.
 
-## Perubahan dari Week 9
+## Perubahan dari Week 10
 
-- Array `products` dan `nextId` di memori dihapus (`data.ts` tidak dipakai lagi).
-- Controller memakai Prisma Client (`findMany`, `findUnique`, `create`, `update`, `delete`).
-- ID dibuat oleh database (`autoincrement`), bukan counter di Express.
-- Route dan controller tetap dipisahkan. Ditambahkan endpoint PUT dan DELETE serta validasi input.
+- Ditambahkan folder `frontend/` berisi aplikasi React + Vite.
+- Halaman utama dengan daftar produk berbentuk kartu, pencarian, dan penghitung jumlah produk.
+- Tiga pop-up: Tambah Produk, Edit Produk, dan Hapus Produk.
+- Validasi harga di sisi frontend, ditambah penanganan error saat server tidak tersedia.
+- Backend (route, controller, Prisma) tidak berubah dan dipakai apa adanya.
+
+## Catatan
+
+- Terminal backend menampilkan peringatan `sslmode` dari `libpq` saat koneksi ke Neon. Ini hanya peringatan dan tidak memengaruhi fungsi aplikasi.
