@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import ProductCard from "./components/ProductCard";
 import ProductFormModal from "./components/ProductFormModal";
+import DeleteModal from "./components/DeleteModal";
 import "./App.css";
 
 const API = "/products"; // diteruskan Vite ke http://localhost:3000
@@ -30,7 +31,7 @@ export default function App() {
     })();
   }, []);
 
-  // POST kalau tambah, PUT kalau edit (PUT membawa id di body sesuai API-mu)
+  // POST kalau tambah, PUT kalau edit
   async function handleSave(data) {
     const isAdd = modal.type === "add";
     const res = await fetch(API, {
@@ -42,8 +43,17 @@ export default function App() {
       const err = await res.json();
       return err.message; // ditampilkan di form
     }
-    await loadProducts(); // ambil ulang supaya sama dengan isi database
+    await loadProducts();
     setModal(null);
+  }
+
+  // DELETE /products/:id
+  async function handleDelete() {
+    const res = await fetch(`${API}/${modal.product.id}`, { method: "DELETE" });
+    if (res.ok) {
+      await loadProducts();
+      setModal(null);
+    }
   }
 
   // data turunan dari state, tidak perlu state terpisah
@@ -82,7 +92,6 @@ export default function App() {
       ) : (
         <div className="grid">
           {filtered.map((p) => (
-            // key harus unik dan stabil, pakai id dari database
             <ProductCard
               key={p.id}
               product={p}
@@ -97,11 +106,21 @@ export default function App() {
         Menampilkan {filtered.length} dari {products.length} produk
       </p>
 
+      {/* Modal Tambah / Edit */}
       {(modal?.type === "add" || modal?.type === "edit") && (
         <ProductFormModal
-          key={modal.product?.id ?? "new"} // form di-reset setiap dibuka
+          key={modal.product?.id ?? "new"}
           product={modal.product}
           onSave={handleSave}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {/* Modal Hapus */}
+      {modal?.type === "delete" && (
+        <DeleteModal
+          product={modal.product}
+          onConfirm={handleDelete}
           onClose={() => setModal(null)}
         />
       )}
