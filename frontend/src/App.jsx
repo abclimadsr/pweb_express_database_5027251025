@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import ProductCard from "./components/ProductCard";
+import ProductFormModal from "./components/ProductFormModal";
 import "./App.css";
 
 const API = "/products"; // diteruskan Vite ke http://localhost:3000
@@ -23,7 +24,27 @@ export default function App() {
   }
 
   // [] = dijalankan sekali saat komponen pertama tampil
-  useEffect(() => { loadProducts(); }, []);
+  useEffect(() => {
+    (async () => {
+      await loadProducts();
+    })();
+  }, []);
+
+  // POST kalau tambah, PUT kalau edit (PUT membawa id di body sesuai API-mu)
+  async function handleSave(data) {
+    const isAdd = modal.type === "add";
+    const res = await fetch(API, {
+      method: isAdd ? "POST" : "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(isAdd ? data : { id: modal.product.id, ...data }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      return err.message; // ditampilkan di form
+    }
+    await loadProducts(); // ambil ulang supaya sama dengan isi database
+    setModal(null);
+  }
 
   // data turunan dari state, tidak perlu state terpisah
   const filtered = products.filter((p) =>
@@ -37,7 +58,10 @@ export default function App() {
           <h1>Manajemen Produk</h1>
           <p>Kelola daftar produk dan harga dalam satu tempat.</p>
         </div>
-        <button className="btn-primary" onClick={() => setModal({ type: "add" })}>
+        <button
+          className="btn-primary"
+          onClick={() => setModal({ type: "add" })}
+        >
           + Tambah Produk
         </button>
       </header>
@@ -72,6 +96,15 @@ export default function App() {
       <p className="footer">
         Menampilkan {filtered.length} dari {products.length} produk
       </p>
+
+      {(modal?.type === "add" || modal?.type === "edit") && (
+        <ProductFormModal
+          key={modal.product?.id ?? "new"} // form di-reset setiap dibuka
+          product={modal.product}
+          onSave={handleSave}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 }
