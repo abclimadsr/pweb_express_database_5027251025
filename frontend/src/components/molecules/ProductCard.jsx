@@ -1,4 +1,4 @@
-import formatPrice from "../utils/formatPrice";
+import formatPrice from "../../utils/formatPrice";
 
 // Props: product (data), onEdit dan onDelete (fungsi dari parent)
 export default function ProductCard({ product, onEdit, onDelete }) {

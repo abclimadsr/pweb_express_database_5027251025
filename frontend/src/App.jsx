@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import ProductCard from "./components/ProductCard";
-import ProductFormModal from "./components/ProductFormModal";
-import DeleteModal from "./components/DeleteModal";
-import "./App.css";
+import ProductCard from "./components/molecules/ProductCard";
+import ProductFormModal from "./components/organisms/ProductFormModal";
+import DeleteModal from "./components/organisms/DeleteModal";
 
 const API = "/products"; // diteruskan Vite ke http://localhost:3000
 
